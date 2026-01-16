@@ -33,6 +33,27 @@ MT4カスタムインジケーターからのアラートシグナルを監視�
 | 監視方式 | ファイル変更検知（watchdog） |
 | 検知遅延 | 1秒以内 |
 
+**MT4アラートログの場所:**
+
+```
+C:\Users\{ユーザー名}\AppData\Roaming\MetaQuotes\Terminal\{32文字のID}\MQL4\Logs\YYYYMMDD.log
+```
+
+| パス要素 | 説明 |
+|----------|------|
+| `{ユーザー名}` | Windowsログインユーザー名 |
+| `{32文字のID}` | MT4インストールごとの固有ID |
+| `YYYYMMDD.log` | 日付ごとのログファイル（例: 20250116.log） |
+
+**ログパスの確認方法:**
+
+1. MT4で `File` → `Open Data Folder` を選択
+2. `MQL4` → `Logs` フォルダを開く
+3. 該当日付のログファイルを確認
+
+**複数MT4インストールの場合:**
+- 各インストールフォルダ内の `origin.txt` でブローカー名を確認可能
+
 **アラートメッセージ形式:**
 ```
 {ACTION} {SYMBOL} SL:{STOP_LOSS} TP:{TAKE_PROFIT}

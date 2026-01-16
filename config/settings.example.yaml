@@ -3,11 +3,24 @@
 
 mt4:
   # Path to MT4 alert log file
-  # Windows example: C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/XXXXX/MQL4/Logs/YYYYMMDD.log
-  alert_log_path: "C:/path/to/mt4/logs/alerts.log"
+  #
+  # How to find your MT4 log path:
+  #   1. Open MT4
+  #   2. Go to File -> Open Data Folder
+  #   3. Navigate to MQL4/Logs
+  #   4. The full path will look like:
+  #      C:/Users/{YourName}/AppData/Roaming/MetaQuotes/Terminal/{32-char-ID}/MQL4/Logs/{YYYYMMDD}.log
+  #
+  # Note: Use forward slashes (/) even on Windows
+  # Note: {32-char-ID} is unique per MT4 installation
+  # Note: Log files are named by date (e.g., 20250116.log)
+  #
+  # Example:
+  alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Logs/20250116.log"
 
 mt5:
   # MT5 account credentials (Vantage Trading)
+  # Get these from your MT5 terminal or broker
   login: 12345678
   password: "your_password_here"
   server: "VantageInternational-Live"
@@ -16,31 +29,33 @@ symbols:
   XAUUSD:
     enabled: true
     lot_size: 0.01
-    weekend_stop: true  # Stop trading on weekends
+    weekend_stop: true  # Stop trading on weekends (Sat-Sun)
 
   BTCUSD:
     enabled: true
     lot_size: 0.01
-    weekend_stop: false  # Trade 24/7
+    weekend_stop: false  # Trade 24/7 (crypto)
 
   ETHUSD:
     enabled: true
     lot_size: 0.01
-    weekend_stop: false  # Trade 24/7
+    weekend_stop: false  # Trade 24/7 (crypto)
 
 trading:
   # Ignore duplicate signals within this time (seconds)
+  # Same symbol + same action within this period will be ignored
   duplicate_threshold_seconds: 180  # 3 minutes
 
-  # Maximum allowed delay from signal to execution (seconds)
+  # Maximum allowed delay from signal detection to order execution (seconds)
   max_execution_delay_seconds: 1
 
 logging:
   # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  # Use DEBUG for troubleshooting, INFO for normal operation
   level: INFO
 
-  # Log file path
+  # Log file path (relative to project root)
   file_path: "logs/trading.log"
 
-  # Log rotation: daily
+  # Log rotation: daily (creates new file each day)
   rotation: daily
