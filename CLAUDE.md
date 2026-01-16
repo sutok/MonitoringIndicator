@@ -173,13 +173,17 @@ symbols:
 ## コマンド
 
 ```bash
-# 開発環境セットアップ
+# 開発環境セットアップ（推奨: pyproject.toml使用）
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
+
+# または requirements-dev.txt 使用
+pip install -r requirements-dev.txt
 
 # テスト実行
-pytest tests/ -v
+pytest                    # 基本
+pytest --cov=src          # カバレッジ付き
 
 # 型チェック
 mypy src/
@@ -189,5 +193,13 @@ black src/ tests/
 isort src/ tests/
 
 # 本番実行
-python src/main.py
+python -m src.main
+# または
+monitoring-indicator  # pip install -e . 後
 ```
+
+## プロジェクト設定
+
+- **pyproject.toml** - 依存関係とツール設定の一元管理
+- **requirements.txt** - 本番依存関係（pip互換）
+- **requirements-dev.txt** - 開発依存関係

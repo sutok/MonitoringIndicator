@@ -1,11 +1,5 @@
 # Core dependencies
+# For full dependency management, see pyproject.toml
 metatrader5>=5.0.45
 watchdog>=3.0.0
 PyYAML>=6.0
-
-# Development dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-mypy>=1.0.0
-black>=23.0.0
-isort>=5.12.0
