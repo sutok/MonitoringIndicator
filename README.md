@@ -117,10 +117,19 @@ python -m src.main -c config/settings.yaml
 
 インジケーターが出力するアラート形式：
 
+**エントリーシグナル:**
 ```
-BUY XAUUSD SL:1920.50 TP:1950.00
-SELL BTCUSD SL:45000.00 TP:42000.00
+Ark_BTC Alert: BUY XAUUSD SL:1920.50 TP:1950.00
+Ark_BTC Indicator SELL BTCUSD SL:45000.00 TP:42000.00
 ```
+
+**決済シグナル:**
+```
+ロング決済サイン at price: 2650.50
+ショート決済サイン at price: 2600.00
+```
+
+決済シグナルを受信すると、対象シンボルの全ポジションを成行で決済します。
 
 ## テスト
 

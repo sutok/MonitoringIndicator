@@ -54,24 +54,47 @@ C:\Users\{ユーザー名}\AppData\Roaming\MetaQuotes\Terminal\{32文字のID}\M
 **複数MT4インストールの場合:**
 - 各インストールフォルダ内の `origin.txt` でブローカー名を確認可能
 
-**アラートメッセージ形式:**
+**エントリーシグナル形式:**
 ```
-{ACTION} {SYMBOL} SL:{STOP_LOSS} TP:{TAKE_PROFIT}
+Ark_BTC...{ACTION} {SYMBOL} SL:{STOP_LOSS} TP:{TAKE_PROFIT}
 ```
 
 **例:**
 ```
-BUY XAUUSD SL:1920.50 TP:1950.00
-SELL BTCUSD SL:45000.00 TP:42000.00
+Ark_BTC Alert: BUY XAUUSD SL:1920.50 TP:1950.00
+Ark_BTC Indicator SELL BTCUSD SL:45000.00 TP:42000.00
+```
+
+**決済シグナル形式:**
+```
+ロング決済サイン at price: {価格}
+ショート決済サイン at price: {価格}
+```
+
+**例:**
+```
+ロング決済サイン at price: 2650.50
+ショート決済サイン at price: 2600.00
 ```
 
 ### 2.2 シグナル解析機能
 
 | 項目 | 仕様 |
 |------|------|
-| パース対象 | ACTION, SYMBOL, SL, TP |
-| ACTIONの種類 | BUY, SELL |
+| エントリーパース対象 | ACTION, SYMBOL, SL, TP |
+| 決済パース対象 | ACTION, 価格 |
+| エントリーACTION | BUY (ロングエントリーサイン), SELL (ショートエントリーサイン) |
+| 決済ACTION | CLOSE_LONG (ロング決済サイン), CLOSE_SHORT (ショート決済サイン) |
 | 対象シンボル | XAUUSD, BTCUSD, ETHUSD |
+
+### 2.3 決済機能
+
+| 項目 | 仕様 |
+|------|------|
+| 決済対象 | 同一シンボルの全ポジション |
+| 決済方法 | 成行注文（シグナル価格は参考値） |
+| ロング決済 | 全BUYポジションを決済 |
+| ショート決済 | 全SELLポジションを決済 |
 
 ### 2.3 重複排除機能
 

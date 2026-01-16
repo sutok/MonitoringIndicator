@@ -27,6 +27,7 @@ class OrderResult:
     order_ticket: Optional[int] = None
     error_message: Optional[str] = None
     executed_at: Optional[datetime] = None
+    closed_count: int = 0  # Number of positions closed (for close signals)
 
 
 class DuplicateChecker:
@@ -222,8 +223,11 @@ class OrderExecutor:
                 error_message="Not connected to MT5",
             )
 
-        # Execute order
-        return self._send_order(signal, symbol_config)
+        # Route to appropriate handler
+        if signal.is_close_signal():
+            return self._close_positions(signal)
+        else:
+            return self._send_order(signal, symbol_config)
 
     def _send_order(
         self,
@@ -305,3 +309,118 @@ class OrderExecutor:
             order_ticket=result.order,
             executed_at=datetime.now(),
         )
+
+    def _close_positions(self, signal: Signal) -> OrderResult:
+        """Close all positions for the given signal.
+
+        Args:
+            signal: Close signal (CLOSE_LONG or CLOSE_SHORT).
+
+        Returns:
+            OrderResult with execution details.
+        """
+        if not MT5_AVAILABLE:
+            return OrderResult(
+                success=False,
+                error_message="MT5 not available",
+            )
+
+        # Get all positions for the symbol
+        positions = mt5.positions_get(symbol=signal.symbol)
+
+        if positions is None or len(positions) == 0:
+            logger.info(f"No positions found for {signal.symbol}")
+            return OrderResult(
+                success=True,
+                error_message="No positions to close",
+                closed_count=0,
+            )
+
+        # Determine which position type to close
+        # CLOSE_LONG closes BUY positions (type=0)
+        # CLOSE_SHORT closes SELL positions (type=1)
+        if signal.action == SignalAction.CLOSE_LONG:
+            target_type = 0  # ORDER_TYPE_BUY
+            close_type = mt5.ORDER_TYPE_SELL
+        else:
+            target_type = 1  # ORDER_TYPE_SELL
+            close_type = mt5.ORDER_TYPE_BUY
+
+        # Filter positions by type
+        target_positions = [p for p in positions if p.type == target_type]
+
+        if not target_positions:
+            position_type_name = (
+                "LONG" if signal.action == SignalAction.CLOSE_LONG else "SHORT"
+            )
+            logger.info(f"No {position_type_name} positions found for {signal.symbol}")
+            return OrderResult(
+                success=True,
+                error_message=f"No {position_type_name} positions to close",
+                closed_count=0,
+            )
+
+        # Close all matching positions
+        closed_count = 0
+        errors = []
+
+        for position in target_positions:
+            # Get current price
+            tick = mt5.symbol_info_tick(signal.symbol)
+            if tick is None:
+                errors.append(f"Failed to get tick for {signal.symbol}")
+                continue
+
+            price = tick.bid if close_type == mt5.ORDER_TYPE_SELL else tick.ask
+
+            # Prepare close request
+            request = {
+                "action": mt5.TRADE_ACTION_DEAL,
+                "symbol": signal.symbol,
+                "volume": position.volume,
+                "type": close_type,
+                "position": position.ticket,
+                "price": price,
+                "deviation": 20,
+                "magic": 123456,
+                "comment": "MonitoringIndicator Close",
+                "type_time": mt5.ORDER_TIME_GTC,
+                "type_filling": mt5.ORDER_FILLING_IOC,
+            }
+
+            # Send close order
+            result = mt5.order_send(request)
+
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                closed_count += 1
+                logger.info(
+                    f"Position closed: {signal.symbol} "
+                    f"Ticket:{position.ticket} Volume:{position.volume}"
+                )
+            else:
+                error_msg = (
+                    f"Close failed for ticket {position.ticket}: {result.retcode}"
+                )
+                logger.error(error_msg)
+                errors.append(error_msg)
+
+        # Return result
+        if closed_count > 0:
+            logger.info(
+                f"Closed {closed_count} positions for {signal.symbol} "
+                f"({signal.action.value})"
+            )
+            return OrderResult(
+                success=True,
+                closed_count=closed_count,
+                executed_at=datetime.now(),
+                error_message="; ".join(errors) if errors else None,
+            )
+        else:
+            return OrderResult(
+                success=False,
+                error_message=(
+                    "; ".join(errors) if errors else "Failed to close positions"
+                ),
+                closed_count=0,
+            )

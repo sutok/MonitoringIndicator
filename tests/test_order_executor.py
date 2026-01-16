@@ -104,8 +104,8 @@ class TestDuplicateChecker:
         # First signal
         assert checker.is_duplicate(signal) is False
 
-        # Manually set last signal time to past
-        key = "XAUUSD_BUY"
+        # Manually set last signal time to past using the correct key format
+        key = f"XAUUSD_{SignalAction.BUY.value}"
         checker._last_signals[key] = datetime.now() - timedelta(seconds=2)
 
         # Should not be duplicate now
@@ -245,7 +245,8 @@ class TestOrderExecutor:
         assert result.success is False
         assert "Unknown symbol" in (result.error_message or "")
 
-    def test_execute_not_connected(self) -> None:
+    @patch.object(TradingTimeChecker, "is_weekend", return_value=False)
+    def test_execute_not_connected(self, mock_is_weekend: MagicMock) -> None:
         """Test execute when not connected."""
         executor = OrderExecutor(self.config)
         # Not connected
