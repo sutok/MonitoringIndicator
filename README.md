@@ -14,6 +14,7 @@ MT4カスタムインジケーターのアラートを監視し、MT5（Vantage 
 - MT5への自動注文実行
 - 通貨ペアごとのロットサイズ設定
 - 週末取引停止機能（XAUUSD）
+- MT4 EAによる取引ON/OFF制御
 - 詳細なログ出力
 
 ## 対応通貨ペア
@@ -73,6 +74,34 @@ symbols:
     lot_size: 0.01
     weekend_stop: true
 ```
+
+## MT4 EA設定（取引制御）
+
+MT4側で取引のON/OFFを制御するためのEAを設定します。
+
+1. `mt4/TradeController.mq4` をMT4のExpertsフォルダにコピー
+   ```
+   C:\Users\{ユーザー名}\AppData\Roaming\MetaQuotes\Terminal\{ID}\MQL4\Experts\
+   ```
+
+2. MT4でコンパイル（Navigatorで右クリック → Compile）
+
+3. チャートにEAをアタッチ
+
+4. パラメータを設定
+   | パラメータ | 説明 | デフォルト |
+   |------------|------|------------|
+   | TradeEnabled | MT5注文の有効/無効 | true |
+   | UpdateInterval | 更新間隔（秒） | 1 |
+   | ControlFileName | 制御ファイル名 | trade_control.json |
+
+5. `config/settings.yaml` に制御ファイルパスを設定
+   ```yaml
+   trade_control:
+     enabled: true
+     control_file_path: "C:/Users/{ユーザー名}/.../MQL4/Files/trade_control.json"
+     default_enabled: true
+   ```
 
 ## 使用方法
 

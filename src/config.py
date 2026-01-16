@@ -33,6 +33,15 @@ class MT5Config:
 
 
 @dataclass
+class TradeControlConfig:
+    """Trade control configuration for MT4 EA integration."""
+
+    enabled: bool = True  # Whether to use trade control file
+    control_file_path: str = ""  # Path to trade_control.json
+    default_enabled: bool = True  # Default state when file not found
+
+
+@dataclass
 class TradingConfig:
     """Trading configuration."""
 
@@ -57,6 +66,7 @@ class Config:
     mt5: MT5Config = field(default_factory=MT5Config)
     symbols: dict[str, SymbolConfig] = field(default_factory=dict)
     trading: TradingConfig = field(default_factory=TradingConfig)
+    trade_control: TradeControlConfig = field(default_factory=TradeControlConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
     @classmethod
@@ -106,6 +116,10 @@ class Config:
         # Trading config
         if "trading" in data:
             config.trading = TradingConfig(**data["trading"])
+
+        # Trade control config
+        if "trade_control" in data:
+            config.trade_control = TradeControlConfig(**data["trade_control"])
 
         # Logging config
         if "logging" in data:

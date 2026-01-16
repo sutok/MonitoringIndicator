@@ -105,7 +105,53 @@ SELL BTCUSD SL:45000.00 TP:42000.00
 | BTCUSD | 制限なし（24/7） |
 | ETHUSD | 制限なし（24/7） |
 
-### 2.7 ログ出力機能
+### 2.7 MT4 EA取引制御機能
+
+MT4側のEAパラメータでMT5への注文実行を制御する機能。
+
+| 項目 | 仕様 |
+|------|------|
+| 制御方式 | MT4 EAがJSONファイルに状態を書き込み |
+| 制御粒度 | グローバル（全通貨ペア共通） |
+| 操作方法 | EAの入力パラメータでON/OFF切替 |
+
+**システム構成:**
+
+```
+┌─────────────────┐     ファイル書込     ┌──────────────────────┐
+│   MT4 EA        │ ─────────────────→ │ trade_control.json   │
+│ (TradeEnabled)  │                     │ {"enabled": true}    │
+└─────────────────┘                     └──────────────────────┘
+                                                  ↓ 読取
+                                        ┌──────────────────────┐
+                                        │  Python監視システム    │
+                                        │  → 注文実行 or スキップ │
+                                        └──────────────────────┘
+```
+
+**制御ファイル形式（trade_control.json）:**
+
+```json
+{
+  "enabled": true,
+  "updated_at": "2025.01.16 10:30:00",
+  "source": "MT4_EA"
+}
+```
+
+**MT4 EA設定:**
+
+| パラメータ | 説明 | デフォルト |
+|------------|------|------------|
+| TradeEnabled | MT5注文実行の有効/無効 | true |
+| UpdateInterval | 更新間隔（秒） | 1 |
+| ControlFileName | 制御ファイル名 | trade_control.json |
+
+**ファイル配置:**
+- MT4 EA出力: `MQL4/Files/trade_control.json`
+- Python読取: 同じファイルを参照
+
+### 2.8 ログ出力機能
 
 | 項目 | 仕様 |
 |------|------|
@@ -168,7 +214,10 @@ MonitoringIndicator/
 │   ├── alert_monitor.py     # MT4アラート監視
 │   ├── signal_parser.py     # シグナル解析
 │   ├── order_executor.py    # MT5注文実行
+│   ├── trade_control.py     # MT4 EA取引制御
 │   └── logger.py            # ログ管理
+├── mt4/
+│   └── TradeController.mq4  # MT4 EA（取引制御）
 ├── config/
 │   └── settings.yaml        # 設定ファイル
 ├── logs/                    # ログ出力先
@@ -176,7 +225,9 @@ MonitoringIndicator/
 │   ├── __init__.py
 │   ├── test_signal_parser.py
 │   ├── test_order_executor.py
-│   └── test_alert_monitor.py
+│   ├── test_alert_monitor.py
+│   ├── test_trade_control.py
+│   └── test_config.py
 ├── CLAUDE.md
 ├── SPECIFICATION.md
 ├── requirements.txt
@@ -214,6 +265,11 @@ trading:
   duplicate_threshold_seconds: 180  # 3分
   max_execution_delay_seconds: 1
 
+trade_control:
+  enabled: true
+  control_file_path: "C:/Users/{username}/.../MQL4/Files/trade_control.json"
+  default_enabled: true
+
 logging:
   level: INFO
   file_path: "logs/trading.log"
@@ -238,7 +294,10 @@ flowchart TD
     I --> J[シグナル解析]
     J --> K{有効なシグナル?}
     K -->|No| H
-    K -->|Yes| L{重複チェック}
+    K -->|Yes| TC{取引制御チェック}
+    TC -->|無効| TCL[EA無効ログ]
+    TCL --> H
+    TC -->|有効| L{重複チェック}
     L -->|重複| M[スキップログ]
     M --> H
     L -->|非重複| N{取引時間チェック}

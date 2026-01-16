@@ -7,6 +7,7 @@ from typing import Optional
 from .config import Config, SymbolConfig
 from .logger import logger
 from .signal_parser import Signal, SignalAction
+from .trade_control import TradeController
 
 # MT5 import with fallback for non-Windows environments
 try:
@@ -15,7 +16,7 @@ try:
     MT5_AVAILABLE = True
 except ImportError:
     MT5_AVAILABLE = False
-    mt5 = None  # type: ignore
+    mt5 = None
 
 
 @dataclass
@@ -115,6 +116,19 @@ class OrderExecutor:
         self.time_checker = TradingTimeChecker()
         self._connected = False
 
+        # Initialize trade controller if enabled
+        self.trade_controller: TradeController | None = None
+        if config.trade_control.enabled and config.trade_control.control_file_path:
+            self.trade_controller = TradeController(
+                config.trade_control.control_file_path
+            )
+            self.trade_controller.set_default_enabled(
+                config.trade_control.default_enabled
+            )
+            logger.info(
+                f"Trade control enabled: {config.trade_control.control_file_path}"
+            )
+
     def connect(self) -> bool:
         """Connect to MT5 terminal.
 
@@ -168,6 +182,14 @@ class OrderExecutor:
         Returns:
             OrderResult with execution details.
         """
+        # Check trade control flag from MT4 EA
+        if self.trade_controller and not self.trade_controller.is_trade_enabled():
+            logger.info(f"Trade disabled by MT4 EA, signal ignored: {signal}")
+            return OrderResult(
+                success=False,
+                error_message="Trade disabled by MT4 control",
+            )
+
         # Check duplicate
         if self.duplicate_checker.is_duplicate(signal):
             logger.warning(f"Duplicate signal ignored: {signal}")

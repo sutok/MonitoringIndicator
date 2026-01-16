@@ -1,11 +1,14 @@
 """Tests for order_executor module."""
 
+import json
+import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.config import Config, SymbolConfig
+from src.config import Config, SymbolConfig, TradeControlConfig
 from src.order_executor import DuplicateChecker, OrderExecutor, TradingTimeChecker
 from src.signal_parser import Signal, SignalAction
 
@@ -276,3 +279,87 @@ class TestOrderExecutor:
         result = executor.execute(signal)
         assert result.success is False
         assert "not allowed" in (result.error_message or "")
+
+    def test_trade_control_disabled_by_ea(self) -> None:
+        """Test execute when trade is disabled by MT4 EA."""
+        # Create control file with enabled=false
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({"enabled": False}, f)
+            temp_path = f.name
+
+        try:
+            self.config.trade_control = TradeControlConfig(
+                enabled=True,
+                control_file_path=temp_path,
+                default_enabled=True,
+            )
+            executor = OrderExecutor(self.config)
+            executor._connected = True
+
+            signal = Signal(
+                action=SignalAction.BUY,
+                symbol="XAUUSD",
+                stop_loss=1920.0,
+                take_profit=1950.0,
+                timestamp=datetime.now(),
+            )
+
+            result = executor.execute(signal)
+            assert result.success is False
+            assert "disabled by MT4" in (result.error_message or "")
+        finally:
+            Path(temp_path).unlink()
+
+    def test_trade_control_enabled_by_ea(self) -> None:
+        """Test execute when trade is enabled by MT4 EA."""
+        # Create control file with enabled=true
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({"enabled": True}, f)
+            temp_path = f.name
+
+        try:
+            self.config.trade_control = TradeControlConfig(
+                enabled=True,
+                control_file_path=temp_path,
+                default_enabled=True,
+            )
+            executor = OrderExecutor(self.config)
+            executor._connected = True
+
+            signal = Signal(
+                action=SignalAction.BUY,
+                symbol="XAUUSD",
+                stop_loss=1920.0,
+                take_profit=1950.0,
+                timestamp=datetime.now(),
+            )
+
+            # Should pass trade control check but fail at duplicate check
+            # (since we already marked this as seen in __init__)
+            # Let's use a fresh signal
+            executor.duplicate_checker.clear()
+
+            result = executor.execute(signal)
+            # Will fail at MT5 connection, but should not fail at trade control
+            assert "disabled by MT4" not in (result.error_message or "")
+        finally:
+            Path(temp_path).unlink()
+
+    def test_trade_control_not_configured(self) -> None:
+        """Test execute when trade control is not configured."""
+        # Default config has trade_control disabled
+        executor = OrderExecutor(self.config)
+        executor._connected = True
+
+        signal = Signal(
+            action=SignalAction.BUY,
+            symbol="XAUUSD",
+            stop_loss=1920.0,
+            take_profit=1950.0,
+            timestamp=datetime.now(),
+        )
+
+        # Should proceed without trade control check
+        result = executor.execute(signal)
+        # Will fail at duplicate or other check, not trade control
+        assert "disabled by MT4" not in (result.error_message or "")

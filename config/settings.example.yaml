@@ -58,6 +58,27 @@ trading:
   # Maximum allowed delay from signal detection to order execution (seconds)
   max_execution_delay_seconds: 1
 
+trade_control:
+  # MT4 EA trade control integration
+  # When enabled, the system reads a control file written by TradeController.mq4
+  # to determine if MT5 order execution should be enabled or disabled
+
+  # Enable/disable trade control feature
+  enabled: true
+
+  # Path to the control file (written by MT4 EA)
+  # Typically in MT4's Files directory: MQL4/Files/trade_control.json
+  # Use the same path as configured in TradeController.mq4
+  #
+  # Example:
+  #   control_file_path: "C:/Users/YourName/.../MQL4/Files/trade_control.json"
+  #
+  control_file_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Files/trade_control.json"
+
+  # Default state when control file is not found
+  # true = allow trading, false = block trading
+  default_enabled: true
+
 logging:
   # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
   # Use DEBUG for troubleshooting, INFO for normal operation
