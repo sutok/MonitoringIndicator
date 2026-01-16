@@ -15,8 +15,17 @@ mt4:
   # Note: {32-char-ID} is unique per MT4 installation
   # Note: Log files are named by date (e.g., 20250116.log)
   #
-  # Example:
-  alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Logs/20250116.log"
+  # Examples:
+  #   Specific file:
+  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/20250116.log"
+  #
+  #   With {date} placeholder (auto-replaced with today's date):
+  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/{date}.log"
+  #
+  #   Directory only (auto-detects latest .log file):
+  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/"
+  #
+  alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Logs/{date}.log"
 
 mt5:
   # MT5 account credentials (Vantage Trading)

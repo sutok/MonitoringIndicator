@@ -2,12 +2,18 @@
 
 import tempfile
 import time
+from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.alert_monitor import AlertFileHandler, AlertMonitor
+from src.alert_monitor import (
+    AlertFileHandler,
+    AlertMonitor,
+    get_today_log_filename,
+    resolve_log_path,
+)
 
 
 class TestAlertFileHandler:
@@ -199,5 +205,142 @@ class TestAlertMonitor:
                 # Note: This might be flaky depending on file system
                 # In real tests, you might want to use a more robust approach
 
+            finally:
+                monitor.stop()
+
+
+class TestResolvePath:
+    """Test cases for resolve_log_path function."""
+
+    def test_resolve_date_placeholder(self) -> None:
+        """Test resolving {date} placeholder."""
+        today_str = date.today().strftime("%Y%m%d")
+        result = resolve_log_path("/logs/{date}.log")
+
+        assert str(result) == f"/logs/{today_str}.log"
+
+    def test_resolve_today_placeholder(self) -> None:
+        """Test resolving {today} placeholder."""
+        today_str = date.today().strftime("%Y%m%d")
+        result = resolve_log_path("/logs/{today}.log")
+
+        assert str(result) == f"/logs/{today_str}.log"
+
+    def test_resolve_directory_with_log_files(self) -> None:
+        """Test resolving directory path with existing log files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create some log files
+            old_log = Path(temp_dir) / "20250101.log"
+            new_log = Path(temp_dir) / "20250115.log"
+            old_log.touch()
+            time.sleep(0.1)  # Ensure different mtime
+            new_log.touch()
+
+            result = resolve_log_path(temp_dir)
+
+            # Should return the latest log file
+            assert result == new_log
+
+    def test_resolve_directory_without_log_files(self) -> None:
+        """Test resolving directory path without log files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            today_str = date.today().strftime("%Y%m%d")
+            result = resolve_log_path(temp_dir)
+
+            # Should return expected today's log file
+            assert result == Path(temp_dir) / f"{today_str}.log"
+
+    def test_resolve_regular_path(self) -> None:
+        """Test resolving regular path without placeholders."""
+        result = resolve_log_path("/logs/specific.log")
+
+        assert str(result) == "/logs/specific.log"
+
+
+class TestGetTodayLogFilename:
+    """Test cases for get_today_log_filename function."""
+
+    def test_format(self) -> None:
+        """Test filename format."""
+        today_str = date.today().strftime("%Y%m%d")
+        result = get_today_log_filename()
+
+        assert result == f"{today_str}.log"
+
+
+class TestAlertFileHandlerDateSwitch:
+    """Test cases for AlertFileHandler date switching."""
+
+    def test_auto_switch_date_disabled(self) -> None:
+        """Test that date switch is disabled when auto_switch_date=False."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            callback = MagicMock()
+            handler = AlertFileHandler(temp_path, callback, auto_switch_date=False)
+
+            # Manually change internal date to yesterday
+            handler._current_date = date(2020, 1, 1)
+
+            # Should not switch
+            assert handler._check_date_change() is False
+            assert handler.file_path == temp_path
+
+        finally:
+            temp_path.unlink()
+
+    def test_auto_switch_date_enabled(self) -> None:
+        """Test that date switch works when enabled."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_log = Path(temp_dir) / "20200101.log"
+            old_log.touch()
+
+            callback = MagicMock()
+            handler = AlertFileHandler(old_log, callback, auto_switch_date=True)
+
+            # Manually change internal date to yesterday
+            handler._current_date = date(2020, 1, 1)
+
+            # Should switch to today's log
+            result = handler._check_date_change()
+
+            assert result is True
+            assert handler.file_path.name == get_today_log_filename()
+            assert handler._current_date == date.today()
+
+
+class TestAlertMonitorAutoResolve:
+    """Test cases for AlertMonitor auto resolve feature."""
+
+    def test_auto_resolve_enabled(self) -> None:
+        """Test auto resolve with {date} placeholder."""
+        callback = MagicMock()
+        today_str = date.today().strftime("%Y%m%d")
+
+        monitor = AlertMonitor("/logs/{date}.log", callback, auto_resolve_date=True)
+
+        assert str(monitor.alert_log_path) == f"/logs/{today_str}.log"
+
+    def test_auto_resolve_disabled(self) -> None:
+        """Test auto resolve disabled keeps original path."""
+        callback = MagicMock()
+
+        monitor = AlertMonitor("/logs/{date}.log", callback, auto_resolve_date=False)
+
+        assert str(monitor.alert_log_path) == "/logs/{date}.log"
+
+    def test_get_current_log_path(self) -> None:
+        """Test get_current_log_path method."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "test.log"
+            log_path.touch()
+
+            callback = MagicMock()
+            monitor = AlertMonitor(log_path, callback)
+            monitor.start()
+
+            try:
+                assert monitor.get_current_log_path() == log_path
             finally:
                 monitor.stop()

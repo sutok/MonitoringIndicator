@@ -6,8 +6,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.config import (Config, LoggingConfig, MT4Config, MT5Config,
-                        SymbolConfig, TradingConfig)
+from src.config import (
+    Config,
+    LoggingConfig,
+    MT4Config,
+    MT5Config,
+    SymbolConfig,
+    TradingConfig,
+)
 
 
 class TestSymbolConfig:

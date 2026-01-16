@@ -5,6 +5,8 @@ import signal
 import sys
 import time
 from pathlib import Path
+from types import FrameType
+from typing import Optional
 
 from .alert_monitor import AlertMonitor
 from .config import Config
@@ -123,7 +125,7 @@ def main() -> None:
     # Handle signals for graceful shutdown
     app: MonitoringIndicator | None = None
 
-    def signal_handler(signum: int, frame) -> None:
+    def signal_handler(signum: int, frame: Optional[FrameType]) -> None:
         logger.info(f"Received signal {signum}")
         if app:
             app.stop()

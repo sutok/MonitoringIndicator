@@ -6,8 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.config import Config, SymbolConfig
-from src.order_executor import (DuplicateChecker, OrderExecutor,
-                                TradingTimeChecker)
+from src.order_executor import DuplicateChecker, OrderExecutor, TradingTimeChecker
 from src.signal_parser import Signal, SignalAction
 
 
