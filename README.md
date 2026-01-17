@@ -59,6 +59,21 @@ cp config/settings.example.yaml config/settings.yaml
 
 2. `config/settings.yaml`を編集
 
+### パス記法について（Windows）
+
+設定ファイル内のパスは **スラッシュ `/` を使用**してください。
+
+```yaml
+# ✅ 正しい記法
+alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123/MQL4/Logs/{date}.log"
+
+# ❌ バックスラッシュは使わない
+alert_log_path: "C:\Users\YourName\..."
+```
+
+Windowsエクスプローラーからコピーしたパスは `\` になりますが、`/` に置き換えてください。
+Pythonが内部で自動的に正しく処理します。
+
 ```yaml
 mt4:
   alert_log_path: "C:/path/to/mt4/logs/alerts.log"
@@ -111,7 +126,17 @@ python -m src.main
 
 # 設定ファイルを指定して起動
 python -m src.main -c config/settings.yaml
+
+# ドライランモード（MT5に接続せずシグナル監視のみ）
+python -m src.main --dry-run
 ```
+
+### コマンドラインオプション
+
+| オプション | 説明 |
+|------------|------|
+| `-c`, `--config` | 設定ファイルのパス（デフォルト: `config/settings.yaml`） |
+| `-d`, `--dry-run` | MT5に接続せず、シグナル検出のみを標準出力に表示 |
 
 ## シグナル形式
 
