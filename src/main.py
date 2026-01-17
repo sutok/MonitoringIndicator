@@ -18,19 +18,21 @@ from .signal_parser import SignalParser
 class MonitoringIndicator:
     """Main application class."""
 
-    def __init__(self, config_path: str | Path):
+    def __init__(self, config_path: str | Path, dry_run: bool = False):
         """Initialize application.
 
         Args:
             config_path: Path to configuration file.
+            dry_run: If True, only monitor and log signals without executing orders.
         """
         self.config = Config.from_yaml(config_path)
+        self.dry_run = dry_run
         self._setup_logging()
 
         self.signal_parser = SignalParser(
             valid_symbols=self.config.get_enabled_symbols()
         )
-        self.order_executor = OrderExecutor(self.config)
+        self.order_executor = OrderExecutor(self.config) if not dry_run else None
         self.alert_monitor = AlertMonitor(
             self.config.mt4.alert_log_path,
             self._on_alert,
@@ -44,7 +46,7 @@ class MonitoringIndicator:
         level = getattr(logging, self.config.logging.level.upper(), logging.INFO)
         setup_logger(
             name="monitoring_indicator",
-            log_file=self.config.logging.file_path,
+            log_file=self.config.logging.file_path if not self.dry_run else None,
             level=level,
         )
 
@@ -64,22 +66,44 @@ class MonitoringIndicator:
 
         logger.info(f"Signal detected: {parsed_signal}")
 
-        # Execute order
-        result = self.order_executor.execute(parsed_signal)
+        # In dry-run mode, just print to stdout
+        if self.dry_run:
+            print(f"[DRY-RUN] Signal: {parsed_signal}")
+            if parsed_signal.is_close_signal():
+                print(f"  -> Would close all {parsed_signal.symbol} positions")
+            else:
+                print(
+                    f"  -> Would open {parsed_signal.action.value} "
+                    f"{parsed_signal.symbol} SL:{parsed_signal.stop_loss} "
+                    f"TP:{parsed_signal.take_profit}"
+                )
+            return
 
-        if result.success:
-            logger.info(f"Order successful: Ticket={result.order_ticket}")
-        else:
-            logger.warning(f"Order failed: {result.error_message}")
+        # Execute order
+        if self.order_executor:
+            result = self.order_executor.execute(parsed_signal)
+
+            if result.success:
+                logger.info(f"Order successful: Ticket={result.order_ticket}")
+            else:
+                logger.warning(f"Order failed: {result.error_message}")
 
     def start(self) -> None:
         """Start the monitoring system."""
         logger.info("Starting MonitoringIndicator...")
 
-        # Connect to MT5
-        if not self.order_executor.connect():
-            logger.error("Failed to connect to MT5. Exiting.")
-            sys.exit(1)
+        if self.dry_run:
+            logger.info("Running in DRY-RUN mode - no orders will be executed")
+            print("=" * 60)
+            print("DRY-RUN MODE: Monitoring signals only, no MT5 connection")
+            print(f"Watching: {self.config.mt4.alert_log_path}")
+            print(f"Symbols: {self.config.get_enabled_symbols()}")
+            print("=" * 60)
+        else:
+            # Connect to MT5
+            if self.order_executor and not self.order_executor.connect():
+                logger.error("Failed to connect to MT5. Exiting.")
+                sys.exit(1)
 
         # Start alert monitoring
         self.alert_monitor.start()
@@ -94,7 +118,8 @@ class MonitoringIndicator:
         self._running = False
 
         self.alert_monitor.stop()
-        self.order_executor.disconnect()
+        if self.order_executor:
+            self.order_executor.disconnect()
 
         logger.info("MonitoringIndicator stopped")
 
@@ -120,6 +145,12 @@ def main() -> None:
         default="config/settings.yaml",
         help="Path to configuration file",
     )
+    parser.add_argument(
+        "-d",
+        "--dry-run",
+        action="store_true",
+        help="Monitor signals without connecting to MT5 or executing orders",
+    )
     args = parser.parse_args()
 
     # Handle signals for graceful shutdown
@@ -136,7 +167,7 @@ def main() -> None:
 
     # Start application
     try:
-        app = MonitoringIndicator(args.config)
+        app = MonitoringIndicator(args.config, dry_run=args.dry_run)
         app.run()
     except FileNotFoundError as e:
         logger.error(f"Configuration error: {e}")
