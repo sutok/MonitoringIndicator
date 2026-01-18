@@ -94,10 +94,46 @@ class AlertFileHandler(FileSystemEventHandler):
         self.auto_switch_date = auto_switch_date
         self._last_position = 0
         self._current_date = date.today()
+        self._monitor_directory = file_path.parent
 
         # Initialize position to end of file
         if file_path.exists():
             self._last_position = file_path.stat().st_size
+
+    def _check_for_newer_log(self) -> bool:
+        """Check if a newer log file exists in the directory.
+
+        This helps handle timezone differences between system time and MT4/MT5 server time.
+        Returns the latest .log file by modification time.
+
+        Returns:
+            True if switched to a newer file, False otherwise.
+        """
+        try:
+            log_files = list(self._monitor_directory.glob("*.log"))
+            if not log_files:
+                return False
+
+            # Find the latest log file by modification time
+            latest_file = max(log_files, key=lambda f: f.stat().st_mtime)
+
+            # Switch if we found a newer file
+            if latest_file != self.file_path:
+                logger.info(
+                    f"Newer log file detected, switching from {self.file_path.name} to {latest_file.name}"
+                )
+                self.file_path = latest_file
+                self._last_position = 0
+
+                if latest_file.exists():
+                    self._last_position = latest_file.stat().st_size
+
+                return True
+
+        except Exception as e:
+            logger.error(f"Error checking for newer log file: {e}")
+
+        return False
 
     def _check_date_change(self) -> bool:
         """Check if date has changed and update file path if needed.
@@ -111,6 +147,12 @@ class AlertFileHandler(FileSystemEventHandler):
         today = date.today()
         if today != self._current_date:
             self._current_date = today
+
+            # First, try to find the latest log file in directory
+            if self._check_for_newer_log():
+                return True
+
+            # Fallback to date-based filename
             new_filename = get_today_log_filename()
             new_path = self.file_path.parent / new_filename
 
@@ -160,12 +202,18 @@ class AlertFileHandler(FileSystemEventHandler):
 
         event_path = Path(src_path)
 
-        # Check if this is today's new log file
-        if self.auto_switch_date and event_path.name == get_today_log_filename():
-            logger.info(f"New daily log file created: {event_path}")
-            self.file_path = event_path
-            self._last_position = 0
-            self._current_date = date.today()
+        # Check if this is a new .log file in the monitored directory
+        if (
+            self.auto_switch_date
+            and event_path.suffix == ".log"
+            and event_path.parent == self._monitor_directory
+        ):
+            # Check if this new file is newer than current file
+            if not self.file_path.exists() or event_path.stat().st_mtime > self.file_path.stat().st_mtime:
+                logger.info(f"New log file created, switching to: {event_path.name}")
+                self.file_path = event_path
+                self._last_position = 0
+                self._current_date = date.today()
 
     def _read_new_lines(self) -> None:
         """Read new lines from file since last position.

@@ -9,23 +9,28 @@ mt4:
   #   2. Go to File -> Open Data Folder
   #   3. Navigate to MQL4/Logs
   #   4. The full path will look like:
-  #      C:/Users/{YourName}/AppData/Roaming/MetaQuotes/Terminal/{32-char-ID}/MQL4/Logs/{YYYYMMDD}.log
+  #      C:/Users/{YourName}/AppData/Roaming/MetaQuotes/Terminal/{32-char-ID}/MQL4/Logs/
   #
   # Note: Use forward slashes (/) even on Windows
   # Note: {32-char-ID} is unique per MT4 installation
-  # Note: Log files are named by date (e.g., 20250116.log)
+  # Note: Log files are named by date (e.g., 20260118.log)
+  #
+  # ⚠️ IMPORTANT: Timezone Consideration
+  #   MT4/MT5 servers use server time (e.g., GMT+2), not your local time (JST).
+  #   To avoid timezone issues, use DIRECTORY-ONLY path (recommended).
+  #   The system will automatically detect the latest .log file.
   #
   # Examples:
-  #   Specific file:
-  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/20250116.log"
+  #   Directory only (RECOMMENDED - auto-detects latest .log file):
+  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/"
   #
   #   With {date} placeholder (auto-replaced with today's date):
   #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/{date}.log"
   #
-  #   Directory only (auto-detects latest .log file):
-  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/"
+  #   Specific file:
+  #     alert_log_path: "C:/Users/YourName/.../MQL4/Logs/20260118.log"
   #
-  alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Logs/{date}.log"
+  alert_log_path: "C:/Users/YourName/AppData/Roaming/MetaQuotes/Terminal/ABC123DEF456.../MQL4/Logs/"
 
 mt5:
   # MT5 account credentials (Vantage Trading)
