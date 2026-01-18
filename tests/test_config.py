@@ -126,7 +126,7 @@ trading:
 
 logging:
   level: DEBUG
-  file_path: "logs/test.log"
+  file_path: "logs/debug.log"
   rotation: daily
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -157,7 +157,7 @@ logging:
 
             # Logging
             assert config.logging.level == "DEBUG"
-            assert config.logging.file_path == "logs/test.log"
+            assert config.logging.file_path == "logs/debug.log"
 
         finally:
             Path(temp_path).unlink()
