@@ -93,12 +93,13 @@ class MonitoringIndicator:
         logger.info("Starting MonitoringIndicator...")
 
         if self.dry_run:
-            logger.info("Running in DRY-RUN mode - no orders will be executed")
-            print("=" * 60)
+            # Print info in bright green
+            logger.info("\033[92mRunning in DRY-RUN mode - no orders will be executed\033[0m")
+            print("\033[92m" + "=" * 60)
             print("DRY-RUN MODE: Monitoring signals only, no MT5 connection")
             print(f"Watching: {self.config.mt4.alert_log_path}")
             print(f"Symbols: {self.config.get_enabled_symbols()}")
-            print("=" * 60)
+            print("=" * 60 + "\033[0m")
         else:
             # Connect to MT5
             if self.order_executor and not self.order_executor.connect():
