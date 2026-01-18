@@ -121,6 +121,87 @@ class TestAlertFileHandler:
         finally:
             temp_path.unlink()
 
+    def test_read_lines_with_backslash_continuation(self) -> None:
+        """Test reading lines with backslash continuation."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            callback = MagicMock()
+            handler = AlertFileHandler(temp_path, callback)
+
+            # Write lines with backslash continuation
+            # Use actual backslash followed by newline
+            with open(temp_path, "a") as f:
+                f.write("This is a long line \\\n")
+                f.write("that continues here\\\n")
+                f.write("and ends here\n")
+
+            # Read new lines
+            handler._read_new_lines()
+
+            # Should merge into one line
+            assert callback.call_count == 1
+            expected = "This is a long line that continues hereand ends here"
+            callback.assert_called_once_with(expected)
+
+        finally:
+            temp_path.unlink()
+
+    def test_read_mixed_backslash_and_normal_lines(self) -> None:
+        """Test reading mix of backslash continuation and normal lines."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            callback = MagicMock()
+            handler = AlertFileHandler(temp_path, callback)
+
+            # Write mixed lines
+            with open(temp_path, "a") as f:
+                f.write("Normal line 1\n")
+                f.write("Continued \\\n")
+                f.write("line 2\n")
+                f.write("Normal line 3\n")
+
+            # Read new lines
+            handler._read_new_lines()
+
+            # Should be 3 lines: normal, merged, normal
+            assert callback.call_count == 3
+            calls = [call[0][0] for call in callback.call_args_list]
+            assert calls == ["Normal line 1", "Continued line 2", "Normal line 3"]
+
+        finally:
+            temp_path.unlink()
+
+    def test_read_multiple_backslash_continuations(self) -> None:
+        """Test reading multiple consecutive backslash continuations."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            callback = MagicMock()
+            handler = AlertFileHandler(temp_path, callback)
+
+            # Write multiple continuation lines
+            with open(temp_path, "a") as f:
+                f.write("Line 1 \\\n")
+                f.write("continues \\\n")
+                f.write("and continues \\\n")
+                f.write("and finally ends\n")
+
+            # Read new lines
+            handler._read_new_lines()
+
+            # Should merge into one line
+            assert callback.call_count == 1
+            expected = "Line 1 continues and continues and finally ends"
+            callback.assert_called_once_with(expected)
+
+        finally:
+            temp_path.unlink()
+
 
 class TestAlertMonitor:
     """Test cases for AlertMonitor."""
@@ -333,7 +414,7 @@ class TestAlertMonitorAutoResolve:
     def test_get_current_log_path(self) -> None:
         """Test get_current_log_path method."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            log_path = Path(temp_dir) / "test.log"
+            log_path = Path(temp_dir) / "debug.log"
             log_path.touch()
 
             callback = MagicMock()

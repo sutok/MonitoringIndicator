@@ -48,4 +48,7 @@ Thumbs.db
 .coverage
 htmlcov/
 .mypy_cache/
+
+# Claude Code / Serena
 .claude/
+.serena/

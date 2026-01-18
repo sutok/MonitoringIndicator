@@ -168,7 +168,10 @@ class AlertFileHandler(FileSystemEventHandler):
             self._current_date = date.today()
 
     def _read_new_lines(self) -> None:
-        """Read new lines from file since last position."""
+        """Read new lines from file since last position.
+
+        Lines ending with backslash (\\) are joined with the next line.
+        """
         try:
             if not self.file_path.exists():
                 return
@@ -179,8 +182,25 @@ class AlertFileHandler(FileSystemEventHandler):
                 self._last_position = f.tell()
 
             if new_content:
-                for line in new_content.strip().split("\n"):
-                    line = line.strip()
+                # Split into lines and merge lines ending with backslash
+                raw_lines = new_content.strip().split("\n")
+                merged_lines = []
+                i = 0
+
+                while i < len(raw_lines):
+                    line = raw_lines[i].rstrip()
+
+                    # Join lines ending with backslash
+                    while line.endswith("\\") and i + 1 < len(raw_lines):
+                        line = line[:-1]  # Remove trailing backslash
+                        i += 1
+                        line += raw_lines[i].strip()  # Append next line
+
+                    merged_lines.append(line)
+                    i += 1
+
+                # Process merged lines
+                for line in merged_lines:
                     if line:
                         logger.debug(f"New alert line: {line}")
                         self.callback(line)
