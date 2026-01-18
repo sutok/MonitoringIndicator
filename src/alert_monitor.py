@@ -190,11 +190,18 @@ class AlertFileHandler(FileSystemEventHandler):
                 while i < len(raw_lines):
                     line = raw_lines[i].rstrip()
 
+                    # Check if line continuation is needed
+                    needs_merge = line.endswith("\\") and i + 1 < len(raw_lines)
+
                     # Join lines ending with backslash
                     while line.endswith("\\") and i + 1 < len(raw_lines):
                         line = line[:-1]  # Remove trailing backslash
                         i += 1
                         line += raw_lines[i].strip()  # Append next line
+
+                    # Debug output for merged lines
+                    if needs_merge:
+                        logger.debug(f"Line continuation detected - Merged line: {line}")
 
                     merged_lines.append(line)
                     i += 1

@@ -50,13 +50,13 @@ class SignalParser:
 
     # Entry pattern: Ark_BTC... BUY XAUUSD SL:1920.50 TP:1950.00
     ENTRY_PATTERN = re.compile(
-        r'(ショートエントリーサイン|ロングエントリーサイン)（価格:\s*([\d.]+)）.*?TP:\s*([\d.]+).*?SL:\s*([\d.]+).*?Symbol:\s*(\w+)',
+        r'/(ショート|ロング)エントリーサイン（価格:\s*([\d.]+)）.*TP:\s*([\d.]+).*SL:\s*([\d.]+).*Symbol:\s*(XAUUSD|BTCUSD|ETHUSD)/u',
         re.IGNORECASE,
     )
 
     # Close pattern: ロング決済サイン at price: 2650.50 or ショート決済サイン at price: 2650.50
     CLOSE_PATTERN = re.compile(
-        r'(ショートエントリーサイン|ロングエントリーサイン)（価格:\s*([\d.]+)）.*?TP:\s*([\d.]+).*?SL:\s*([\d.]+).*?Symbol:\s*(\w+)',
+        r'(ショート|ロング)決済サイン（価格:\s*([\d.]+)）.*TP:\s*([\d.]+).*SL:\s*([\d.]+).*Symbol:\s*(XAUUSD|BTCUSD|ETHUSD)',
         re.IGNORECASE,
     )
 
